@@ -14,6 +14,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
 use Filament\Tables\Actions\Action;
+use Filament\Notifications\Notification;
 
 class AccountResource extends Resource
 {
@@ -24,20 +25,42 @@ class AccountResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Select::make('user_id')->relationship('user','email')->searchable()->required(),
+            Forms\Components\Select::make('user_id')
+                ->relationship('user','email')
+                ->searchable()
+                ->required(),
+
             TextInput::make('account_number')
                 ->label('Account #')
-                ->disabled()          // read-only
-                ->dehydrated()        // still save to DB
+                ->disabled()                 // read-only in UI
+                ->dehydrated()               // still submit
                 ->unique(ignoreRecord: true)
                 ->afterStateHydrated(function (TextInput $component, $state, $record) {
-                    // Only on create (no record yet)
                     if (! $record && blank($state)) {
                         $component->state(AccountNumberGenerator::make());
                     }
-                }),
-            Forms\Components\TextInput::make('currency')->default('PHP')->required(),
-            Forms\Components\TextInput::make('balance')->numeric()->disabled(),
+                })
+                ->helperText('Auto-generated'),
+
+            // Create-only "Initial Deposit" (not stored in accounts table)
+            TextInput::make('initial_deposit')
+                ->label('Initial Deposit')
+                ->numeric()->minValue(0)->step('0.01')
+                ->default(0)
+                ->dehydrated(false)         // don’t save into accounts
+                ->visibleOn('create')
+                ->helperText('Optional. Will be posted as a deposit transaction.'),
+
+            Forms\Components\Select::make('currency')
+                ->options(['PHP' => 'PHP','USD' => 'USD','EUR' => 'EUR'])
+                ->default('PHP')->required(),
+
+            Forms\Components\TextInput::make('balance')
+                ->numeric()
+                ->disabled()
+                ->default(0)
+                ->helperText('Computed via transactions'),
+
             Forms\Components\Select::make('status')->options([
                 'open'=>'Open','frozen'=>'Frozen','closed'=>'Closed'
             ])->required()->default('open'),
@@ -47,14 +70,18 @@ class AccountResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([
-            Tables\Columns\TextColumn::make('id')->label('Acct#')->sortable(),
+            Tables\Columns\TextColumn::make('id')->label('Acct ID')->sortable(),
             Tables\Columns\TextColumn::make('user.email')->label('Owner')->searchable(),
-            Tables\Columns\TextColumn::make('account_number')->searchable(),
+            Tables\Columns\TextColumn::make('account_number')->searchable()->copyable(),
             Tables\Columns\TextColumn::make('currency'),
-            Tables\Columns\TextColumn::make('balance')->money('php')->sortable(),
-            Tables\Columns\BadgeColumn::make('status')->colors([
+            Tables\Columns\TextColumn::make('balance')
+                ->money(fn ($record) => strtolower($record->currency ?? 'php')),
+
+
+        Tables\Columns\BadgeColumn::make('status')->colors([
                 'success'=>'open','warning'=>'frozen','gray'=>'closed'
             ]),
+            Tables\Columns\TextColumn::make('created_at')->dateTime()->since()->label('Opened'),
         ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')->options([
@@ -63,59 +90,85 @@ class AccountResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+
                 Action::make('deposit')
                     ->label('Deposit')->icon('heroicon-o-arrow-down-circle')
-                    ->form([Forms\Components\TextInput::make('amount')->numeric()->minValue(0.01)->required(),])
-
+                    ->form([
+                        Forms\Components\TextInput::make('amount')->numeric()->minValue(0.01)->step('0.01')->required(),
+                        Forms\Components\TextInput::make('remarks')->maxLength(255)->default('Admin deposit'),
+                    ])
                     ->action(function (Account $a, array $data) {
-                        DB::transaction(function () use ($a, $data) {
-                            if ($a->status !== 'open') { throw new Exception('Account not open.'); }
-                            $amt = (float) $data['amount'];
+                        try {
+                            DB::transaction(function () use ($a, $data) {
+                                $acc = Account::whereKey($a->id)->lockForUpdate()->first();
+                                if ($acc->status !== 'open') { throw new Exception('Account not open.'); }
 
-                            Transaction::create([
-                                'account_id' => $a->id,
-                                'type' => 'deposit',
-                                'amount' => $amt,
-                                'currency' => $a->currency,
-                                'reference_no' => (string) \Str::uuid(),
-                                'status' => 'posted',
-                                'remarks' => 'Admin deposit',
-                            ]);
+                                $amt = (float) $data['amount'];
 
-                            $a->increment('balance', $amt);
-                        });
+                                Transaction::create([
+                                    'account_id' => $acc->id,
+                                    'type' => 'deposit',
+                                    'amount' => $amt,
+                                    'currency' => $acc->currency,
+                                    'reference_no' => (string) \Str::uuid(),
+                                    'status' => 'posted',
+                                    'remarks' => $data['remarks'] ?? 'Admin deposit',
+                                ]);
+
+                                $acc->increment('balance', $amt);
+                            });
+
+                            Notification::make()->title('Deposit posted')->success()->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()->title('Deposit failed')->body($e->getMessage())->danger()->send();
+                        }
                     }),
+
                 Action::make('withdraw')
                     ->label('Withdraw')->icon('heroicon-o-arrow-up-circle')->color('warning')
-                    ->form([ Forms\Components\TextInput::make('amount')->numeric()->minValue(0.01)->required() ])
+                    ->form([
+                        Forms\Components\TextInput::make('amount')->numeric()->minValue(0.01)->step('0.01')->required(),
+                        Forms\Components\TextInput::make('remarks')->maxLength(255)->default('Admin withdrawal'),
+                    ])
                     ->action(function (Account $a, array $data) {
-                        DB::transaction(function () use ($a, $data) {
-                            if ($a->status !== 'open') { throw new Exception('Account not open.'); }
-                            $amt = (float) $data['amount'];
-                            if ($a->balance < $amt) { throw new Exception('Insufficient balance.'); }
+                        try {
+                            DB::transaction(function () use ($a, $data) {
+                                $acc = Account::whereKey($a->id)->lockForUpdate()->first();
+                                if ($acc->status !== 'open') { throw new Exception('Account not open.'); }
 
-                            Transaction::create([
-                                'account_id' => $a->id,
-                                'type' => 'withdrawal',
-                                'amount' => $amt,
-                                'currency' => $a->currency,
-                                'reference_no' => (string) \Str::uuid(),
-                                'status' => 'posted',
-                                'remarks' => 'Admin withdrawal',
-                            ]);
+                                $amt = (float) $data['amount'];
+                                if ((float) $acc->balance < $amt) { throw new Exception('Insufficient balance.'); }
 
-                            $a->decrement('balance', $amt);
-                        });
+                                Transaction::create([
+                                    'account_id' => $acc->id,
+                                    'type' => 'withdrawal',
+                                    'amount' => $amt,
+                                    'currency' => $acc->currency,
+                                    'reference_no' => (string) \Str::uuid(),
+                                    'status' => 'posted',
+                                    'remarks' => $data['remarks'] ?? 'Admin withdrawal',
+                                ]);
+
+                                $acc->decrement('balance', $amt);
+                            });
+
+                            Notification::make()->title('Withdrawal posted')->success()->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()->title('Withdrawal failed')->body($e->getMessage())->danger()->send();
+                        }
                     }),
 
                 Action::make('freeze')
-                    ->visible(fn (Account $record) => $record->status === 'open')
-                    ->action(fn (Account $record) => $record->update(['status' => 'frozen'])),
+                    ->visible(fn (Account $r) => $r->status === 'open')
+                    ->requiresConfirmation()
+                    ->color('warning')
+                    ->action(fn (Account $r) => $r->update(['status' => 'frozen'])),
 
-                Action::make('close')->visible(fn(Account $a) => $a->status!=='closed')
+                Action::make('close')
+                    ->visible(fn(Account $a) => $a->status!=='closed')
                     ->color('gray')->requiresConfirmation()
                     ->action(function(Account $a){
-                        if ($a->balance != 0) { throw new Exception('Balance must be zero to close.'); }
+                        if ((float)$a->balance !== 0.0) { throw new Exception('Balance must be zero to close.'); }
                         $a->update(['status'=>'closed']);
                     }),
             ]);
