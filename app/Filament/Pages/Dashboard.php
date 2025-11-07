@@ -22,9 +22,8 @@ class Dashboard extends BaseDashboard
             \App\Filament\Widgets\DailyNetFlowChart::class,
             \App\Filament\Widgets\DepositsVsWithdrawalsChart::class,
             \App\Filament\Widgets\TransfersCountChart::class,
-            \App\Filament\Widgets\TopBillersBarChart::class,
             \App\Filament\Widgets\ApplicationsPerDayChart::class,
-
+            \App\Filament\Widgets\TopBillersBarChart::class,
             \App\Filament\Widgets\PendingApplicationsTable::class,
             \App\Filament\Widgets\TopAccountsTable::class,
             // \App\Filament\Widgets\RecentTransactionsTable::class, // add if you want

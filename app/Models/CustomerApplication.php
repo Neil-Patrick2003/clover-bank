@@ -19,4 +19,8 @@ class CustomerApplication extends Model
     public function assignedAdmin(): BelongsTo { return $this->belongsTo(User::class, 'assigned_admin_id'); }
     public function accountRequest(): HasOne { return $this->hasOne(ApplicationAccount::class, 'application_id'); }
     public function documents(): HasMany { return $this->hasMany(ApplicationDocument::class, 'application_id'); }
+
+    public function requestedAccounts() {
+        return $this->hasMany(ApplicationAccount::class, 'application_id');
+    }
 }

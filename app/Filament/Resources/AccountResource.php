@@ -4,8 +4,10 @@ namespace App\Filament\Resources;
 
 use App\Models\Account;
 use App\Models\Transaction;
+use App\Services\Banking\AccountNumberGenerator;
 use Exception;
 use Filament\Forms;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -23,7 +25,17 @@ class AccountResource extends Resource
     {
         return $form->schema([
             Forms\Components\Select::make('user_id')->relationship('user','email')->searchable()->required(),
-            Forms\Components\TextInput::make('account_number')->required()->unique(ignoreRecord: true),
+            TextInput::make('account_number')
+                ->label('Account #')
+                ->disabled()          // read-only
+                ->dehydrated()        // still save to DB
+                ->unique(ignoreRecord: true)
+                ->afterStateHydrated(function (TextInput $component, $state, $record) {
+                    // Only on create (no record yet)
+                    if (! $record && blank($state)) {
+                        $component->state(AccountNumberGenerator::make());
+                    }
+                }),
             Forms\Components\TextInput::make('currency')->default('PHP')->required(),
             Forms\Components\TextInput::make('balance')->numeric()->disabled(),
             Forms\Components\Select::make('status')->options([
