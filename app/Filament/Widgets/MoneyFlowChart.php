@@ -13,11 +13,7 @@ class MoneyFlowChart extends ChartWidget
 {
     protected static ?string $heading = 'Money Movements (Last 30 Days)';
     protected int|string|array $columnSpan = 'full';
-
-    /** Auto-refresh every 30s (optional, remove if you don’t want live updates) */
     protected static ?string $pollingInterval = '30s';
-
-    /** Make the chart taller (optional) */
     protected static ?string $maxHeight = '340px';
 
     protected function getData(): array
@@ -25,58 +21,66 @@ class MoneyFlowChart extends ChartWidget
         $from = now()->subDays(29)->startOfDay();
         $to   = now()->endOfDay();
 
-        // light caching to avoid re-aggregating on every request
-        $cacheKey = 'money_flow_' . $from->toDateString() . '_' . $to->toDateString();
-        [$labels, $dep, $trf, $bp] = Cache::remember($cacheKey, 30, function () use ($from, $to) {
-            // Restrict to relevant types for a smaller scan
-            $rows = Transaction::selectRaw("
-                    DATE(created_at) AS d,
-                    SUM(CASE WHEN type = 'deposit'       THEN amount ELSE 0 END) AS deposits,
-                    SUM(CASE WHEN type = 'transfer_out'  THEN amount ELSE 0 END) AS transfers,
-                    SUM(CASE WHEN type = 'bill_payment'  THEN amount ELSE 0 END) AS billpays
-                ")
-                ->whereBetween('created_at', [$from, $to])
-                ->whereIn('type', ['deposit', 'transfer_out', 'bill_payment'])
-                ->groupBy(DB::raw('DATE(created_at)'))
-                ->orderBy('d')
-                ->get()
-                ->keyBy('d');
+        // Build the label range first
+        $labels = [];
+        $cursor = $from->copy();
+        while ($cursor->lte($to)) {
+            $labels[] = $cursor->format('M d');
+            $cursor->addDay();
+        }
 
-            $labels = [];
-            $dep = $trf = $bp = [];
+        // Initialize daily buckets
+        $days = [];
+        $cursor = $from->copy();
+        while ($cursor->lte($to)) {
+            $days[$cursor->toDateString()] = [
+                'deposit'      => 0.0,
+                'transfer_in'  => 0.0,
+                'transfer_out' => 0.0,
+                'bill_payment' => 0.0,
+            ];
+            $cursor->addDay();
+        }
 
-            $cursor = Carbon::parse($from);
-            while ($cursor->lte($to)) {
-                $k = $cursor->toDateString();
-                $labels[] = $cursor->format('M d');
+        // Fetch only needed fields and types
+        $tx = Transaction::query()
+            ->whereBetween('created_at', [$from, $to])
+            ->whereIn('type', ['deposit', 'transfer_in', 'transfer_out', 'bill_payment'])
+            ->get(['type','amount','created_at']);
 
-                $r = $rows->get($k);
-                $dep[] = (float) ($r->deposits  ?? 0);
-                $trf[] = (float) ($r->transfers ?? 0);
-                $bp[]  = (float) ($r->billpays  ?? 0);
-
-                $cursor->addDay();
+        // Aggregate in PHP
+        foreach ($tx as $row) {
+            $d = $row->created_at->toDateString();
+            if (isset($days[$d])) {
+                $days[$d][$row->type] += (float) $row->amount;
             }
+        }
 
-            return [$labels, $dep, $trf, $bp];
-        });
+        // Unpack into series
+        $dep = $trfIn = $trfOut = $bp = [];
+        foreach (array_keys($days) as $d) {
+            $dep[]   = $days[$d]['deposit'];
+            $trfIn[] = $days[$d]['transfer_in'];
+            $trfOut[]= $days[$d]['transfer_out'];
+            $bp[]    = $days[$d]['bill_payment'];
+        }
 
         return [
             'datasets' => [
-                ['label' => 'Deposits',      'data' => $dep],
-                ['label' => 'Transfers Out', 'data' => $trf],
+                ['label' => 'Deposits',       'data' => $dep],
+                ['label' => 'Transfers In',   'data' => $trfIn],
+                ['label' => 'Transfers Out',  'data' => $trfOut],
                 ['label' => 'Bill Payments',  'data' => $bp],
             ],
             'labels' => $labels,
         ];
     }
 
+
     protected function getType(): string
     {
         return 'line';
     }
-
-    /** Nicer look & readable axes/tooltips */
 
     protected function getOptions(): array
     {
@@ -84,18 +88,18 @@ class MoneyFlowChart extends ChartWidget
             'responsive' => true,
             'maintainAspectRatio' => false,
             'elements' => [
-                'line'  => ['tension' => 0.4],
-                'point' => ['radius' => 3],
+                'line'  => ['tension' => 0.35],
+                'point' => ['radius' => 2.5],
             ],
             'plugins' => [
                 'legend' => ['display' => true, 'position' => 'top'],
                 'tooltip' => [
                     'callbacks' => [
-                        'label' => Js::from(<<<'JS'
+                        'label' => \Illuminate\Support\Js::from(<<<'JS'
                         function (ctx) {
                           const label = ctx.dataset?.label ?? 'Value';
                           const v = ctx.parsed?.y ?? 0;
-                          return label + ': ' + new Intl.NumberFormat().format(v);
+                          return label + ': ₱' + new Intl.NumberFormat().format(v);
                         }
                     JS),
                     ],
@@ -104,20 +108,13 @@ class MoneyFlowChart extends ChartWidget
             'scales' => [
                 'x' => ['grid' => ['display' => false]],
                 'y' => [
+                    'beginAtZero' => true,
                     'grid' => ['color' => 'rgba(0,0,0,0.08)'],
-                    'ticks' => [
-                        'callback' => Js::from(<<<'JS'
-                        function (v) {
-                          if (v >= 1_000_000) return (Math.round(v / 100_000) / 10) + 'M';
-                          if (v >= 1_000)     return (Math.round(v / 100) / 10) + 'K';
-                          return v;
-                        }
-                    JS),
-                    ],
+                    // comment the "suggestedMax" if you prefer auto-scaling
+                    // 'suggestedMax' => 1000, // e.g. ₱1,000 for demo; adjust to your range
                 ],
             ],
         ];
     }
-
 
 }

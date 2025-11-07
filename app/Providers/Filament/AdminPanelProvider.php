@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
+use App\Filament\Widgets\MoneyFlowChart;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -60,7 +61,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->widgets([
                 \App\Filament\Widgets\KpiOverview::class,
-                \App\Filament\Widgets\MoneyFlowChart::class,
+                MoneyFlowChart::class,
                 \App\Filament\Widgets\DailyNetFlowChart::class,
                 \App\Filament\Widgets\DepositsVsWithdrawalsChart::class,
                 \App\Filament\Widgets\TransfersCountChart::class,

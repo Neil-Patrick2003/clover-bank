@@ -5,21 +5,17 @@ namespace App\Filament\Widgets;
 use App\Models\Transaction;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Js;
 
 class DepositsVsWithdrawalsChart extends ChartWidget
 {
-    protected static ?string $heading = 'Deposits vs Withdrawals (Last 30 Days)';
+    protected static ?string $heading = 'Cash In vs Cash Out (Last 30 Days)';
 
-    // Layout: half width on large screens
     protected int|string|array $columnSpan = [
         'default' => 12,
         'lg'      => 6,
     ];
 
-    // Optional QoL
     protected static ?string $pollingInterval = '30s';
     protected static ?string $maxHeight = '320px';
 
@@ -28,50 +24,70 @@ class DepositsVsWithdrawalsChart extends ChartWidget
         $from = now()->subDays(29)->startOfDay();
         $to   = now()->endOfDay();
 
-        [$labels, $dep, $wd] = Cache::remember(
-            'dep_wd_' . $from->toDateString() . '_' . $to->toDateString(),
-            30,
-            function () use ($from, $to) {
-                $rows = Transaction::selectRaw("
-                        DATE(created_at) d,
-                        SUM(CASE WHEN type='deposit'    THEN amount ELSE 0 END) deposits,
-                        SUM(CASE WHEN type='withdrawal' THEN amount ELSE 0 END) withdrawals
-                    ")
-                    ->whereBetween('created_at', [$from, $to])
-                    ->whereIn('type', ['deposit', 'withdrawal'])
-                    ->groupBy(DB::raw('DATE(created_at)'))
-                    ->orderBy('d')
-                    ->get()
-                    ->keyBy('d');
+        // Labels for each day
+        $labels = [];
+        $cursor = $from->copy();
+        while ($cursor->lte($to)) {
+            $labels[] = $cursor->format('M d');
+            $cursor->addDay();
+        }
 
-                $labels = []; $dep = []; $wd = [];
-                $cursor = Carbon::parse($from);
+        // Buckets per day
+        $days = [];
+        $cursor = $from->copy();
+        while ($cursor->lte($to)) {
+            $days[$cursor->toDateString()] = [
+                'cash_in'  => 0.0, // deposit + transfer_in
+                'cash_out' => 0.0, // transfer_out + bill_payment
+            ];
+            $cursor->addDay();
+        }
 
-                while ($cursor->lte($to)) {
-                    $k = $cursor->toDateString();
-                    $labels[] = $cursor->format('M d');
-                    $dep[] = (float) ($rows[$k]->deposits    ?? 0);
-                    $wd[]  = (float) ($rows[$k]->withdrawals ?? 0);
-                    $cursor->addDay();
-                }
+        // Fetch relevant rows once
+        $tx = Transaction::query()
+            ->whereBetween('created_at', [$from, $to])
+            ->whereIn('type', ['deposit', 'transfer_in', 'transfer_out', 'bill_payment'])
+            ->get(['type', 'amount', 'created_at']);
 
-                return [$labels, $dep, $wd];
+        // Aggregate in PHP
+        foreach ($tx as $row) {
+            $d = $row->created_at->toDateString();
+            if (! isset($days[$d])) continue;
+
+            $amt = (float) $row->amount;
+            switch ($row->type) {
+                case 'deposit':
+                case 'transfer_in':
+                    $days[$d]['cash_in']  += $amt;
+                    break;
+                case 'transfer_out':
+                case 'bill_payment':
+                    $days[$d]['cash_out'] += $amt;
+                    break;
             }
-        );
+        }
+
+        // Build series
+        $cashIn  = [];
+        $cashOut = [];
+        foreach (array_keys($days) as $d) {
+            $cashIn[]  = $days[$d]['cash_in'];
+            $cashOut[] = $days[$d]['cash_out'];
+        }
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Deposits',
-                    'data'  => $dep,
+                    'label' => 'Cash In',
+                    'data'  => $cashIn,
                     'stack' => 'a',
                     'borderWidth' => 0,
                     'barPercentage' => 0.7,
                     'categoryPercentage' => 0.7,
                 ],
                 [
-                    'label' => 'Withdrawals',
-                    'data'  => $wd,
+                    'label' => 'Cash Out',
+                    'data'  => $cashOut,
                     'stack' => 'a',
                     'borderWidth' => 0,
                     'barPercentage' => 0.7,
@@ -100,7 +116,7 @@ class DepositsVsWithdrawalsChart extends ChartWidget
                             function (ctx) {
                               const label = ctx.dataset?.label ?? 'Value';
                               const v = ctx.parsed?.y ?? 0;
-                              return `${label}: ` + new Intl.NumberFormat().format(v);
+                              return label + ': ₱' + new Intl.NumberFormat().format(v);
                             }
                         JS),
                     ],
@@ -113,6 +129,7 @@ class DepositsVsWithdrawalsChart extends ChartWidget
                 ],
                 'y' => [
                     'stacked' => true,
+                    'beginAtZero' => true,
                     'grid' => ['color' => 'rgba(0,0,0,0.06)'],
                     'ticks' => [
                         'callback' => Js::from(<<<'JS'

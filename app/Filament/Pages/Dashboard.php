@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\MoneyFlowChart;
 use Filament\Pages\Dashboard as BaseDashboard;
 
 class Dashboard extends BaseDashboard
@@ -18,7 +19,7 @@ class Dashboard extends BaseDashboard
     public function getWidgets(): array
     {
         return [
-            \App\Filament\Widgets\MoneyFlowChart::class,
+            MoneyFlowChart::class,
             \App\Filament\Widgets\DailyNetFlowChart::class,
             \App\Filament\Widgets\DepositsVsWithdrawalsChart::class,
             \App\Filament\Widgets\TransfersCountChart::class,

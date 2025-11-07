@@ -5,21 +5,17 @@ namespace App\Filament\Widgets;
 use App\Models\Transaction;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Js;
 
 class DailyNetFlowChart extends ChartWidget
 {
     protected static ?string $heading = 'Daily Net Flow (Last 30 Days)';
 
-    // Layout suggestion: half width on large screens
     protected int|string|array $columnSpan = [
         'default' => 12,
         'lg'      => 6,
     ];
 
-    // Optional QoL
     protected static ?string $pollingInterval = '30s';
     protected static ?string $maxHeight = '320px';
 
@@ -28,44 +24,55 @@ class DailyNetFlowChart extends ChartWidget
         $from = now()->subDays(29)->startOfDay();
         $to   = now()->endOfDay();
 
-        [$labels, $series] = Cache::remember(
-            'daily_net_flow_' . $from->toDateString() . '_' . $to->toDateString(),
-            30,
-            function () use ($from, $to) {
-                $rows = Transaction::selectRaw("
-                        DATE(created_at) d,
-                        SUM(CASE WHEN type='deposit' THEN amount ELSE 0 END)
-                      - SUM(CASE WHEN type='transfer_out' THEN amount ELSE 0 END)
-                      - SUM(CASE WHEN type='bill_payment' THEN amount ELSE 0 END) net
-                    ")
-                    ->whereBetween('created_at', [$from, $to])
-                    ->groupBy(DB::raw('DATE(created_at)'))
-                    ->orderBy('d')
-                    ->get()
-                    ->keyBy('d');
+        // Build 30-day label range
+        $labels = [];
+        $cursor = $from->copy();
+        while ($cursor->lte($to)) {
+            $labels[] = $cursor->format('M d');
+            $cursor->addDay();
+        }
 
-                $labels = [];
-                $data   = [];
-                $cursor = Carbon::parse($from);
+        // Prepare daily net array
+        $net = [];
+        $cursor = $from->copy();
+        while ($cursor->lte($to)) {
+            $net[$cursor->toDateString()] = 0.0;
+            $cursor->addDay();
+        }
 
-                while ($cursor->lte($to)) {
-                    $k = $cursor->toDateString();
-                    $labels[] = $cursor->format('M d');
-                    $data[]   = (float) ($rows[$k]->net ?? 0);
-                    $cursor->addDay();
-                }
+        // Get relevant transactions
+        $tx = Transaction::query()
+            ->whereBetween('created_at', [$from, $to])
+            ->whereIn('type', ['deposit', 'transfer_in', 'transfer_out', 'bill_payment'])
+            ->get(['type', 'amount', 'created_at']);
 
-                return [$labels, $data];
+        // Compute daily net:
+        // (deposits + transfer_in) - (transfer_out + bill_payment)
+        foreach ($tx as $t) {
+            $d = $t->created_at->toDateString();
+            $amt = (float) $t->amount;
+
+            if (! isset($net[$d])) continue;
+
+            if (in_array($t->type, ['deposit', 'transfer_in'])) {
+                $net[$d] += $amt;
+            } else {
+                $net[$d] -= $amt;
             }
-        );
+        }
+
+        $series = array_values($net);
 
         return [
             'datasets' => [[
-                'label'        => 'Net',
-                'data'         => $series,
-                'type'         => 'bar',
-                'borderWidth'  => 0,
-                'barPercentage'=> 0.7,
+                'label' => 'Net Flow',
+                'data'  => $series,
+                'backgroundColor' => array_map(
+                    fn ($v) => $v >= 0 ? 'rgba(34,197,94,0.8)' : 'rgba(239,68,68,0.8)',
+                    $series
+                ),
+                'borderWidth' => 0,
+                'barPercentage' => 0.7,
                 'categoryPercentage' => 0.7,
             ]],
             'labels' => $labels,
@@ -74,7 +81,6 @@ class DailyNetFlowChart extends ChartWidget
 
     protected function getType(): string
     {
-        // We'll return 'bar' here, but we also set dataset type explicitly above.
         return 'bar';
     }
 
@@ -92,7 +98,7 @@ class DailyNetFlowChart extends ChartWidget
                               const label = ctx.dataset?.label ?? 'Net';
                               const v = ctx.parsed?.y ?? 0;
                               const n = new Intl.NumberFormat().format(v);
-                              return `${label}: ${n}`;
+                              return `${label}: ₱${n}`;
                             }
                         JS),
                     ],
@@ -103,7 +109,6 @@ class DailyNetFlowChart extends ChartWidget
                     'grid' => ['display' => false],
                 ],
                 'y' => [
-                    // Center around zero so positives/negatives stand out
                     'beginAtZero' => true,
                     'grid' => ['color' => 'rgba(0,0,0,0.06)'],
                     'ticks' => [
@@ -115,10 +120,6 @@ class DailyNetFlowChart extends ChartWidget
                             }
                         JS),
                     ],
-                    // Draw a bold zero line
-                    'afterFit' => Js::from(<<<'JS'
-                        function(scale) { /* no-op: Chart.js v4 handles grid styling */ }
-                    JS),
                 ],
             ],
         ];
