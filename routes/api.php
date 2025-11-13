@@ -1,57 +1,95 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\AccountController;
-use App\Http\Controllers\Api\V1\DepositController;
-use App\Http\Controllers\Api\V1\TransferController;
-use App\Http\Controllers\Api\V1\BillController;
-use App\Http\Controllers\Api\V1\BeneficiaryController;
-use App\Http\Controllers\Api\V1\ApplicationController;
+use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\AccountController;
+use App\Http\Controllers\API\TransactionController;
+use App\Http\Controllers\API\TransferController;
+use App\Http\Controllers\API\BillController;
+use App\Http\Controllers\API\CustomerApplicationController;
+use App\Http\Controllers\API\KycProfileController;
+use App\Http\Controllers\API\BeneficiaryController;
 
-// Health
-Route::get('v1/test', fn() => ['message' => 'API is working']);
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+*/
 
-// Auth
-Route::prefix('v1/auth')->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('login',    [AuthController::class, 'login']);
+Route::prefix("v1")->group(function() {
+    // Public routes
+    Route::post("/auth/register", [AuthController::class, "register"]);
+    Route::post("/auth/login", [AuthController::class, "login"]);
+
+    // Protected routes
+    Route::middleware("auth:sanctum")->group(function() {
+        // Auth routes
+        Route::post("/auth/logout", [AuthController::class, "logout"]);
+        Route::get("/auth/me", [AuthController::class, "me"]);
+        Route::get("/user", function (Request $request) {
+            return $request->user()->load('accounts');
+        });
+        Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
+        Route::put('/auth/password', [AuthController::class, 'updatePassword']);
+
+        // Account routes
+        Route::get('/accounts', [AccountController::class, 'index']);
+        Route::get('/accounts/{id}', [AccountController::class, 'show']);
+        Route::get('/accounts/resolve', [AccountController::class, 'resolve']);
+        Route::get('/accounts/{id}/balance', [AccountController::class, 'balance']);
+        Route::get('/accounts/{id}/statement', [AccountController::class, 'statement']);
+        
+        // Transaction routes
+        Route::get('/transactions', [TransactionController::class, 'index']);
+        Route::get('/transactions/{id}', [TransactionController::class, 'show']);
+        Route::get('/transactions/summary', [TransactionController::class, 'summary']);
+        
+        // Transfer routes
+        Route::get('/transfers', [TransferController::class, 'index']);
+        Route::post('/transfers', [TransferController::class, 'store']);
+        Route::get('/transfers/{id}', [TransferController::class, 'show']);
+        Route::get('/transfers/limits', [TransferController::class, 'limits']);
+        
+        // Bill Payment routes
+        Route::get('/billers', [BillController::class, 'billers']);
+        Route::get('/billers/categories', [BillController::class, 'categories']);
+        Route::get('/bill-payments', [BillController::class, 'index']);
+        Route::post('/bill-payments', [BillController::class, 'store']);
+        Route::get('/bill-payments/{id}', [BillController::class, 'show']);
+        
+        // Customer Application routes
+        Route::get('/applications/status', [CustomerApplicationController::class, 'status']);
+        Route::get('/applications', [CustomerApplicationController::class, 'index']);
+        Route::post('/applications', [CustomerApplicationController::class, 'store']);
+        Route::get('/applications/{id}', [CustomerApplicationController::class, 'show']);
+        Route::post('/applications/{id}/submit', [CustomerApplicationController::class, 'submit']);
+        Route::post('/applications/{id}/cancel', [CustomerApplicationController::class, 'cancel']);
+        Route::post('/applications/{id}/requested-accounts', [CustomerApplicationController::class, 'addRequestedAccounts']);
+        Route::get('/applications/requirements', [CustomerApplicationController::class, 'requirements']);
+        
+        // KYC Profile routes
+        Route::get('/applications/kyc', [KycProfileController::class, 'show']);
+        Route::post('/applications/kyc', [KycProfileController::class, 'store']);
+        Route::put('/applications/kyc', [KycProfileController::class, 'update']);
+        Route::get('/applications/kyc/status', [KycProfileController::class, 'status']);
+        Route::get('/applications/kyc/requirements', [KycProfileController::class, 'requirements']);
+        
+        // Beneficiary routes
+        Route::get('/beneficiaries', [BeneficiaryController::class, 'index']);
+        Route::post('/beneficiaries', [BeneficiaryController::class, 'store']);
+        Route::get('/beneficiaries/{id}', [BeneficiaryController::class, 'show']);
+        Route::put('/beneficiaries/{id}', [BeneficiaryController::class, 'update']);
+        Route::delete('/beneficiaries/{id}', [BeneficiaryController::class, 'destroy']);
+        Route::post('/beneficiaries/{id}/toggle-status', [BeneficiaryController::class, 'toggleStatus']);
+        Route::get('/beneficiaries/banks', [BeneficiaryController::class, 'banks']);
+        Route::get('/beneficiaries/currencies', [BeneficiaryController::class, 'currencies']);
+    });
 });
 
-// Protected
-Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
-    Route::get('auth/me',    [AuthController::class, 'me']);
-    Route::post('auth/logout',[AuthController::class, 'logout']);
-
-    // Application (onboarding)
-    Route::post('applications', [ApplicationController::class, 'start']);
-    Route::get('applications/status', [ApplicationController::class, 'status']); // 👈 move this up
-    Route::get('applications/{application}', [ApplicationController::class, 'show']);
-    Route::post('applications/{application}/accounts', [ApplicationController::class, 'addRequestedAccount']);
-    Route::post('applications/kyc', [ApplicationController::class, 'saveKyc']);
-    Route::post('applications/{application}/submit', [ApplicationController::class, 'submit']);
-
-
-
-    // Accounts & transactions
-    Route::get('accounts', [AccountController::class, 'index']);
-    Route::get('accounts/resolve', [\App\Http\Controllers\Api\V1\AccountController::class, 'resolve']);
-    Route::get('accounts/{account}', [AccountController::class, 'show']);
-    Route::get('accounts/{account}/transactions', [AccountController::class, 'transactions']);
-
-    // Money ops
-    Route::post('deposits',  [DepositController::class, 'store']);
-    Route::post('transfers', [TransferController::class, 'store']);
-
-    // Bills
-    Route::get('billers', [BillController::class, 'billers']);
-    Route::post('bill-payments', [BillController::class, 'pay']);
-
-    // Beneficiaries
-    Route::get('beneficiaries',    [BeneficiaryController::class, 'index']);
-    Route::post('beneficiaries',   [BeneficiaryController::class, 'store']);
-    Route::delete('beneficiaries/{beneficiary}', [BeneficiaryController::class, 'destroy']);
-
-    Route::get('transactions/recent', [\App\Http\Controllers\Api\V1\TransactionController::class, 'recent']);
-
+// Fallback route for undefined API endpoints
+Route::fallback(function () {
+    return response()->json([
+        'message' => 'API endpoint not found.'
+    ], 404);
 });
