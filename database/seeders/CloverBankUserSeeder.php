@@ -19,7 +19,7 @@ class CloverBankUserSeeder extends Seeder
             [
                 'username' => 'jdelacruz',
                 'email' => 'juan.delacruz@example.com',
-                'password' => 'SecurePass123!',
+                'password' => 'jdelacruz123$',
                 'balance' => 50000.00,
                 'id_type' => 'passport',
                 'id_number' => 'P12345678',
@@ -28,7 +28,7 @@ class CloverBankUserSeeder extends Seeder
             [
                 'username' => 'msantos',
                 'email' => 'maria.santos@example.com',
-                'password' => 'Maria@2023',
+                'password' => 'msantos123$',
                 'balance' => 125000.75,
                 'id_type' => 'driver_license',
                 'id_number' => 'DL98765432',
@@ -37,7 +37,7 @@ class CloverBankUserSeeder extends Seeder
             [
                 'username' => 'rcruz',
                 'email' => 'robert.cruz@example.com',
-                'password' => 'Robert@2023',
+                'password' => 'robert123$',
                 'balance' => 75000.50,
                 'id_type' => 'sss',
                 'id_number' => '01-2345678-9',
@@ -46,7 +46,7 @@ class CloverBankUserSeeder extends Seeder
             [
                 'username' => 'areyes',
                 'email' => 'ana.reyes@example.com',
-                'password' => 'AnaReyes@2023',
+                'password' => 'areyes123$',
                 'balance' => 200000.00,
                 'id_type' => 'passport',
                 'id_number' => 'PP87654321',
@@ -55,7 +55,7 @@ class CloverBankUserSeeder extends Seeder
             [
                 'username' => 'cgonzales',
                 'email' => 'carlos.gonzales@example.com',
-                'password' => 'Carlos@2023',
+                'password' => 'cgonzales123$',
                 'balance' => 30000.25,
                 'id_type' => 'other',
                 'id_number' => 'TIN-123456789',
