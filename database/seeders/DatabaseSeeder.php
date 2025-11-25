@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminUserSeeder::class, // Admin Account
             CloverBankUserSeeder::class, // Users Account
+            BillerSeeder::class, // Billers
         ]);
     }
     

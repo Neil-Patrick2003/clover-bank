@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\TransferController;
 use App\Http\Controllers\Api\V1\BillController;
 use App\Http\Controllers\Api\V1\BeneficiaryController;
 use App\Http\Controllers\Api\V1\ApplicationController;
+use App\Http\Controllers\Api\V1\KycController;
 
 // Health
 Route::get('v1/test', fn() => ['message' => 'API is working']);
@@ -28,6 +29,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('applications/status', [ApplicationController::class, 'status']); // 👈 move this up
     Route::get('applications/{application}', [ApplicationController::class, 'show']);
     Route::post('applications/{application}/accounts', [ApplicationController::class, 'addRequestedAccount']);
+    Route::get('kyc/profile', [KycController::class, 'profile']);
     Route::post('applications/kyc', [ApplicationController::class, 'saveKyc']);
     Route::post('applications/{application}/submit', [ApplicationController::class, 'submit']);
 
