@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Account;
 use App\Models\KycProfile;
+use App\Services\Banking\AccountNumberGenerator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -18,8 +19,8 @@ class CloverBankUserSeeder extends Seeder
         $users = [
             [
                 'username' => 'jdelacruz',
-                'email' => 'juan.delacruz@example.com',
-                'password' => 'jdelacruz123$',
+                'email' => 'juan.delacruz@gmail.com',
+                'password' => 'Jdelacruz1$',
                 'balance' => 50000.00,
                 'id_type' => 'passport',
                 'id_number' => 'P12345678',
@@ -36,8 +37,8 @@ class CloverBankUserSeeder extends Seeder
             ],
             [
                 'username' => 'rcruz',
-                'email' => 'robert.cruz@example.com',
-                'password' => 'robert123$',
+                'email' => 'robert.cruz@gmail.com',
+                'password' => 'Rcruz1$',
                 'balance' => 75000.50,
                 'id_type' => 'sss',
                 'id_number' => '01-2345678-9',
@@ -45,8 +46,8 @@ class CloverBankUserSeeder extends Seeder
             ],
             [
                 'username' => 'areyes',
-                'email' => 'ana.reyes@example.com',
-                'password' => 'areyes123$',
+                'email' => 'ana.reyes@gmail.com',
+                'password' => 'Areyes1$',
                 'balance' => 200000.00,
                 'id_type' => 'passport',
                 'id_number' => 'PP87654321',
@@ -54,8 +55,8 @@ class CloverBankUserSeeder extends Seeder
             ],
             [
                 'username' => 'cgonzales',
-                'email' => 'carlos.gonzales@example.com',
-                'password' => 'cgonzales123$',
+                'email' => 'carlos.gonzales@gmail.com',
+                'password' => 'Cgonzales1$',
                 'balance' => 30000.25,
                 'id_type' => 'other',
                 'id_number' => 'TIN-123456789',
@@ -82,7 +83,7 @@ class CloverBankUserSeeder extends Seeder
             // Create bank account
             $account = new Account();
             $account->user_id = $user->id;
-            $account->account_number = 'CB' . now()->format('Ymd') . str_pad($user->id, 6, '0', STR_PAD_LEFT);
+            $account->account_number = AccountNumberGenerator::make();
             $account->currency = 'PHP';
             $account->balance = $userData['balance'];
             $account->status = 'open';
