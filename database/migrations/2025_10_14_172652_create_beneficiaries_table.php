@@ -15,9 +15,12 @@ return new class extends Migration
             $table->id(); // beneficiary_id
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete(); // owner
             $table->string('nickname', 100)->nullable();
-            $table->string('bank_code', 20);
+            $table->string('bank_code', 20)->nullable();
             $table->string('account_number', 64);
-            $table->string('account_name', 120);
+            $table->string('account_name', 120)->nullable();
+            $table->string('name', 160)->nullable();
+            $table->string('bank', 160)->nullable();
+            $table->string('currency', 3)->nullable();
             $table->timestamps();
 
             $table->index(['user_id', 'bank_code']);
