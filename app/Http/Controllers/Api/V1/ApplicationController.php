@@ -38,25 +38,36 @@ class ApplicationController extends Controller
     }
 
     public function addRequestedAccount(Request $req, CustomerApplication $application)
-    {
-        abort_unless($application->user_id === $req->user()->id, 403);
-        abort_if($application->status !== 'draft', 422, 'Application not in draft');
+{
+    abort_unless($application->user_id === $req->user()->id, 403);
+    abort_if($application->status !== 'draft', 422, 'Application not in draft');
 
-        $data = $req->validate([
-            'requested_type' => ['required','in:savings,current,time_deposit'],
-            'currency'       => ['required','string','size:3'],
-            'initial_deposit'=> ['nullable','numeric','min:0'],
-        ]);
+    $data = $req->validate([
+        'requested_type' => ['required','in:savings,current,time_deposit'],
+        'currency'       => ['required','string','size:3'],
+        'initial_deposit'=> ['nullable','numeric','min:0'],
+    ]);
 
-        $row = ApplicationAccount::create([
-            'application_id' => $application->id,
-            'requested_type' => $data['requested_type'],
-            'currency'       => strtoupper($data['currency']),
-            'initial_deposit'=> (float) ($data['initial_deposit'] ?? 0),
-        ]);
+    // Check for existing account type
+    $existingAccount = ApplicationAccount::where('application_id', $application->id)
+        ->where('requested_type', $data['requested_type'])
+        ->first();
 
-        return response()->json(['id' => $row->id], 201);
+    if ($existingAccount) {
+        return response()->json([
+            'message' => 'An account of type "' . $data['requested_type'] . '" already exists in this application'
+        ], 422);
     }
+
+    $row = ApplicationAccount::create([
+        'application_id' => $application->id,
+        'requested_type' => $data['requested_type'],
+        'currency'       => strtoupper($data['currency']),
+        'initial_deposit'=> (float) ($data['initial_deposit'] ?? 0),
+    ]);
+
+    return response()->json(['id' => $row->id], 201);
+}
 
     public function saveKyc(Request $req)
     {
