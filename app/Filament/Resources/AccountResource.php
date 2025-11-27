@@ -223,7 +223,7 @@ class AccountResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('account_type')
-                    ->label('Type')
+                    ->label('haha ')
                     ->options([
                         'savings'  => 'Savings',
                         'checking' => 'Checking',
