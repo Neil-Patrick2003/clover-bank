@@ -48,17 +48,6 @@ class ApplicationController extends Controller
         'initial_deposit'=> ['nullable','numeric','min:0'],
     ]);
 
-    // Check for existing account type
-    $existingAccount = ApplicationAccount::where('application_id', $application->id)
-        ->where('requested_type', $data['requested_type'])
-        ->first();
-
-    if ($existingAccount) {
-        return response()->json([
-            'message' => 'An account of type "' . $data['requested_type'] . '" already exists in this application'
-        ], 422);
-    }
-
     $row = ApplicationAccount::create([
         'application_id' => $application->id,
         'requested_type' => $data['requested_type'],
