@@ -20,7 +20,7 @@ class Dashboard extends BaseDashboard
     {
         return [
             MoneyFlowChart::class,
-            \App\Filament\Widgets\DailyNetFlowChart::class,
+             \App\Filament\Widgets\DailyNetFlowChart::class,
             \App\Filament\Widgets\DepositsVsWithdrawalsChart::class,
             \App\Filament\Widgets\TransfersCountChart::class,
             \App\Filament\Widgets\ApplicationsPerDayChart::class,
