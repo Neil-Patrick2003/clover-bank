@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Clover Bank - Secure and Simple Digital Banking</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
 </head>
 <body class="bg-neutral-50">
 <nav id="clover-nav" class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-emerald-100">
@@ -24,7 +25,7 @@
                 <a href="#clover-security" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Security</a>
                 <a href="#clover-cta" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Get Started</a>
                 <button class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-semibold hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg shadow-emerald-500/30">
-                    Login
+                    Download App
                 </button>
             </div>
 
@@ -54,20 +55,6 @@
                 <p class="text-xl text-neutral-600 mb-8 leading-relaxed">
                     Manage your finances effortlessly with Clover. <span class="font-bold">Secure registration</span>, <span class="font-bold">instant transfers</span>, and clear <span class="font-bold">account oversight</span>.
                 </p>
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button class="px-8 py-4 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl font-semibold hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-xl shadow-emerald-500/40 flex items-center justify-center gap-2">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15.01l-4.5-4.5 1.41-1.41L11 15.19l7.09-7.09 1.41 1.41-8.5 8.5z"/>
-                        </svg>
-                        Get Started (Sign Up)
-                    </button>
-                    <button class="px-8 py-4 bg-white text-emerald-700 border-2 border-emerald-600 rounded-xl font-semibold hover:bg-emerald-50 transition-all flex items-center justify-center gap-2">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                        </svg>
-                        Secure Login
-                    </button>
-                </div>
                 <div class="mt-8 flex items-center gap-6">
                     <div class="flex -space-x-3">
                         <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=40&h=40&fit=crop&search_term=woman,portrait,professional,smiling" alt="User" class="w-10 h-10 rounded-full border-2 border-white">
@@ -357,13 +344,7 @@
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15.01l-4.5-4.5 1.41-1.41L11 15.19l7.09-7.09 1.41 1.41-8.5 8.5z"/>
                 </svg>
-                Sign Up Now
-            </button>
-            <button class="px-10 py-4 bg-emerald-900 text-white rounded-xl font-semibold hover:bg-emerald-950 transition-all shadow-xl flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
-                </svg>
-                User Login
+                Download App Now
             </button>
         </div>
     </div>
@@ -374,7 +355,11 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             <div>
                 <div class="flex items-center space-x-2 mb-4">
-                    <img src={logo} alt="">
+                    <div class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
                     <span class="text-xl font-bold">Clover Bank</span>
                 </div>
                 <p class="text-neutral-400">
