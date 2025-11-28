@@ -6,8 +6,8 @@ use App\Filament\Resources\TransferResource;
 use App\Models\Account;
 use App\Models\Transaction;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
-use Exception;
 use Str;
 
 class CreateTransfer extends CreateRecord
@@ -17,23 +17,71 @@ class CreateTransfer extends CreateRecord
     protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
         return DB::transaction(function () use ($data) {
-            /** @var Account $from */
+
             $from = Account::lockForUpdate()->findOrFail($data['from_account_id']);
-            /** @var Account $to */
             $to   = Account::lockForUpdate()->findOrFail($data['to_account_id']);
+            $amt  = (float) $data['amount'];
 
-            if ($from->status !== 'open' || $to->status !== 'open') {
-                throw new Exception('Both accounts must be open.');
+            // -------------------------------
+            // 1. Validate account state
+            // -------------------------------
+            if ($from->status !== 'open') {
+                Notification::make()
+                    ->title('Source account is not open')
+                    ->danger()
+                    ->send();
+
+                return $this->halt();
             }
+
+            if ($to->status !== 'open') {
+                Notification::make()
+                    ->title('Destination account is not open')
+                    ->danger()
+                    ->send();
+
+                return $this->halt();
+            }
+
+            // -------------------------------
+            // 2. Currency mismatch
+            // -------------------------------
             if ($from->currency !== $to->currency) {
-                throw new Exception('Currency mismatch.');
-            }
-            $amt = (float) $data['amount'];
-            if ($from->balance < $amt) {
-                throw new Exception('Insufficient balance.');
+                Notification::make()
+                    ->title('Currency mismatch')
+                    ->body('Both accounts must use the same currency.')
+                    ->danger()
+                    ->send();
+
+                return $this->halt();
             }
 
-            // out
+            // -------------------------------
+            // 3. Amount validation
+            // -------------------------------
+            if ($amt <= 0) {
+                Notification::make()
+                    ->title('Invalid amount')
+                    ->body('Amount must be greater than zero.')
+                    ->danger()
+                    ->send();
+
+                return $this->halt();
+            }
+
+            if ($from->balance < $amt) {
+                Notification::make()
+                    ->title('Insufficient Balance')
+                    ->body('The source account does not have enough funds.')
+                    ->danger()
+                    ->send();
+
+                return $this->halt();
+            }
+
+            // -------------------------------
+            // 4. Process transfer-out
+            // -------------------------------
             $trxOut = Transaction::create([
                 'account_id'   => $from->id,
                 'type'         => 'transfer_out',
@@ -43,9 +91,12 @@ class CreateTransfer extends CreateRecord
                 'status'       => 'posted',
                 'remarks'      => 'Admin transfer out',
             ]);
+
             $from->decrement('balance', $amt);
 
-            // in
+            // -------------------------------
+            // 5. Process transfer-in
+            // -------------------------------
             $trxIn = Transaction::create([
                 'account_id'   => $to->id,
                 'type'         => 'transfer_in',
@@ -55,10 +106,13 @@ class CreateTransfer extends CreateRecord
                 'status'       => 'posted',
                 'remarks'      => 'Admin transfer in',
             ]);
+
             $to->increment('balance', $amt);
 
-            // link
-            return static::getModel()::create([
+            // -------------------------------
+            // 6. Create Transfer record
+            // -------------------------------
+            $result = static::getModel()::create([
                 'from_account_id' => $from->id,
                 'to_account_id'   => $to->id,
                 'amount'          => $amt,
@@ -66,6 +120,13 @@ class CreateTransfer extends CreateRecord
                 'trx_out_id'      => $trxOut->id,
                 'trx_in_id'       => $trxIn->id,
             ]);
+
+            Notification::make()
+                ->title('Transfer Successful')
+                ->success()
+                ->send();
+
+            return $result;
         });
     }
 }

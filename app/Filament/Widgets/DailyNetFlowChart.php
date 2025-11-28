@@ -20,64 +20,62 @@ class DailyNetFlowChart extends ChartWidget
     protected static ?string $maxHeight = '320px';
 
     protected function getData(): array
-    {
-        $from = now()->subDays(29)->startOfDay();
-        $to   = now()->endOfDay();
+{
+    $from = now()->subDays(29)->startOfDay();
+    $to = now()->endOfDay();
 
-        // Build 30-day label range
-        $labels = [];
-        $cursor = $from->copy();
-        while ($cursor->lte($to)) {
-            $labels[] = $cursor->format('M d');
-            $cursor->addDay();
-        }
-
-        // Prepare daily net array
-        $net = [];
-        $cursor = $from->copy();
-        while ($cursor->lte($to)) {
-            $net[$cursor->toDateString()] = 0.0;
-            $cursor->addDay();
-        }
-
-        // Get relevant transactions
-        $tx = Transaction::query()
-            ->whereBetween('created_at', [$from, $to])
-            ->whereIn('type', ['deposit', 'transfer_in', 'transfer_out', 'bill_payment'])
-            ->get(['type', 'amount', 'created_at']);
-
-        // Compute daily net:
-        // (deposits + transfer_in) - (transfer_out + bill_payment)
-        foreach ($tx as $t) {
-            $d = $t->created_at->toDateString();
-            $amt = (float) $t->amount;
-
-            if (! isset($net[$d])) continue;
-
-            if (in_array($t->type, ['deposit', 'transfer_in'])) {
-                $net[$d] += $amt;
-            } else {
-                $net[$d] -= $amt;
-            }
-        }
-
-        $series = array_values($net);
-
-        return [
-            'datasets' => [[
-                'label' => 'Net Flow',
-                'data'  => $series,
-                'backgroundColor' => array_map(
-                    fn ($v) => $v >= 0 ? 'rgba(34,197,94,0.8)' : 'rgba(239,68,68,0.8)',
-                    $series
-                ),
-                'borderWidth' => 0,
-                'barPercentage' => 0.7,
-                'categoryPercentage' => 0.7,
-            ]],
-            'labels' => $labels,
-        ];
+    // Build date range
+    $dateRange = [];
+    $labels = [];
+    $cursor = $from->copy();
+    
+    while ($cursor->lte($to)) {
+        $dateString = $cursor->toDateString();
+        $dateRange[$dateString] = 0.0;
+        $labels[] = $cursor->format('M d');
+        $cursor->addDay();
     }
+
+    // Use database aggregation for better performance
+    $dailyTotals = Transaction::query()
+        ->whereBetween('created_at', [$from, $to])
+        ->whereIn('type', ['deposit', 'transfer_in', 'transfer_out', 'bill_payment'])
+        ->selectRaw('DATE(created_at) as date, type, SUM(amount) as total')
+        ->groupBy('date', 'type')
+        ->get()
+        ->groupBy('date');
+
+    // Calculate net flow
+    foreach ($dailyTotals as $date => $transactions) {
+        if (!isset($dateRange[$date])) continue;
+
+        $inflows = $transactions->whereIn('type', ['deposit', 'transfer_in'])->sum('total');
+        $outflows = $transactions->whereIn('type', ['transfer_out', 'bill_payment'])->sum('total');
+        
+        $dateRange[$date] = $inflows - $outflows;
+    }
+
+    $series = array_values($dateRange);
+
+    return [
+        'datasets' => [[
+            'label' => 'Net Flow',
+            'data' => $series,
+            'backgroundColor' => array_map(
+                fn ($v) => $v >= 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)',
+                $series
+            ),
+            'borderColor' => array_map(
+                fn ($v) => $v >= 0 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)',
+                $series
+            ),
+            'borderWidth' => 1,
+            'barPercentage' => 0.7,
+            'categoryPercentage' => 0.7,
+        ]],
+        'labels' => $labels,
+    ];
+}
 
     protected function getType(): string
     {
@@ -85,43 +83,68 @@ class DailyNetFlowChart extends ChartWidget
     }
 
     protected function getOptions(): array
-    {
-        return [
-            'responsive' => true,
-            'maintainAspectRatio' => false,
-            'plugins' => [
-                'legend' => ['display' => true, 'position' => 'top'],
-                'tooltip' => [
-                    'callbacks' => [
-                        'label' => Js::from(<<<'JS'
-                            function (ctx) {
-                              const label = ctx.dataset?.label ?? 'Net';
-                              const v = ctx.parsed?.y ?? 0;
-                              const n = new Intl.NumberFormat().format(v);
-                              return `${label}: ₱${n}`;
-                            }
-                        JS),
-                    ],
+{
+    return [
+        'responsive' => true,
+        'maintainAspectRatio' => false,
+        'plugins' => [
+            'legend' => [
+                'display' => true,
+                'position' => 'top',
+                'labels' => [
+                    'usePointStyle' => true,
+                    'padding' => 20,
+                ]
+            ],
+            'tooltip' => [
+                'backgroundColor' => 'rgba(0, 0, 0, 0.8)',
+                'titleColor' => 'rgb(255, 255, 255)',
+                'bodyColor' => 'rgb(255, 255, 255)',
+                'borderColor' => 'rgba(255, 255, 255, 0.1)',
+                'borderWidth' => 1,
+                'callbacks' => [
+                    'label' => Js::from(<<<'JS'
+                        function (context) {
+                            const label = context.dataset.label || 'Net Flow';
+                            const value = context.parsed.y;
+                            const formatted = new Intl.NumberFormat('en-PH', {
+                                style: 'currency',
+                                currency: 'PHP'
+                            }).format(value);
+                            return `${label}: ${formatted}`;
+                        }
+                    JS),
                 ],
             ],
-            'scales' => [
-                'x' => [
-                    'grid' => ['display' => false],
-                ],
-                'y' => [
-                    'beginAtZero' => true,
-                    'grid' => ['color' => 'rgba(0,0,0,0.06)'],
-                    'ticks' => [
-                        'callback' => Js::from(<<<'JS'
-                            function (v) {
-                              if (Math.abs(v) >= 1_000_000) return (Math.round(v / 100_000) / 10) + 'M';
-                              if (Math.abs(v) >= 1_000)     return (Math.round(v / 100) / 10) + 'K';
-                              return v;
+        ],
+        'scales' => [
+            'x' => [
+                'grid' => ['display' => false],
+                'ticks' => [
+                    'maxRotation' => 0,
+                    'autoSkip' => true,
+                    'maxTicksLimit' => 10,
+                ]
+            ],
+            'y' => [
+                'beginAtZero' => true,
+                'grid' => ['color' => 'rgba(0, 0, 0, 0.06)'],
+                'ticks' => [
+                    'callback' => Js::from(<<<'JS'
+                        function (value) {
+                            if (value === 0) return '₱0';
+                            if (Math.abs(value) >= 1000000) {
+                                return '₱' + (value / 1000000).toFixed(1) + 'M';
                             }
-                        JS),
-                    ],
+                            if (Math.abs(value) >= 1000) {
+                                return '₱' + (value / 1000).toFixed(1) + 'K';
+                            }
+                            return '₱' + value;
+                        }
+                    JS),
                 ],
             ],
-        ];
-    }
+        ],
+    ];
+}
 }
