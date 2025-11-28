@@ -14,10 +14,8 @@ class TopAccountsTable extends BaseWidget
     protected static ?string $heading = 'Top Balances';
 
     /** Layout: half width on large screens */
-    protected int|string|array $columnSpan = [
-        'default' => 12,
-        'lg'      => 6,
-    ];
+    protected int|string|array $columnSpan = "full";
+
 
     /** Optional live refresh */
     protected static ?string $pollingInterval = '30s';
