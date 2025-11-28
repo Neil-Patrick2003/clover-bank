@@ -170,6 +170,7 @@ class CustomerApplicationResource extends Resource
                                     'account_number' => $accountNumber,
                                     'currency'       => $req->currency ?? 'PHP',
                                     'balance'        => 0,
+                                    'accounts.account_type' => $req->requested_type,
                                     'status'         => 'open',
                                 ]);
 

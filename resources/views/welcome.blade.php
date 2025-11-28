@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Clover Bank - Secure and Simple Digital Banking</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
 </head>
 <body class="bg-neutral-50">
 <nav id="clover-nav" class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-emerald-100">
@@ -20,10 +19,10 @@
                 <span class="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent">Clover Bank</span>
             </div>
             <div class="hidden md:flex items-center space-x-8">
-                <a href="#features" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Features</a>
-                <a href="#services" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Transfers & History</a>
-                <a href="#security" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Security</a>
-                <a href="#download" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Get Started</a>
+                <a href="#clover-features" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Features</a>
+                <a href="#clover-services" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Transfers & History</a>
+                <a href="#clover-security" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Security</a>
+                <a href="#clover-cta" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Get Started</a>
                 <button class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-semibold hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg shadow-emerald-500/30">
                     Login
                 </button>
@@ -362,7 +361,7 @@
             </button>
             <button class="px-10 py-4 bg-emerald-900 text-white rounded-xl font-semibold hover:bg-emerald-950 transition-all shadow-xl flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
                 </svg>
                 User Login
             </button>
@@ -375,11 +374,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             <div>
                 <div class="flex items-center space-x-2 mb-4">
-                    <div class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
+                    <img src={logo} alt="">
                     <span class="text-xl font-bold">Clover Bank</span>
                 </div>
                 <p class="text-neutral-400">
@@ -390,9 +385,9 @@
             <div>
                 <h4 class="font-semibold mb-4">Account</h4>
                 <ul class="space-y-2">
-                    <li><a href="#features" class="text-neutral-400 hover:text-emerald-400 transition-colors">Core Features</a></li>
-                    <li><a href="#services" class="text-neutral-400 hover:text-emerald-400 transition-colors">Transfers & History</a></li>
-                    <li><a href="#security" class="text-neutral-400 hover:text-emerald-400 transition-colors">Security</a></li>
+                    <li><a href="#clover-features" class="text-neutral-400 hover:text-emerald-400 transition-colors">Core Features</a></li>
+                    <li><a href="#clover-services" class="text-neutral-400 hover:text-emerald-400 transition-colors">Transfers & History</a></li>
+                    <li><a href="#clover-security" class="text-neutral-400 hover:text-emerald-400 transition-colors">Security</a></li>
                     <li><a href="#" class="text-neutral-400 hover:text-emerald-400 transition-colors">My Profile</a></li>
                 </ul>
             </div>
@@ -419,5 +414,28 @@
         </div>
     </div>
 </footer>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const links = document.querySelectorAll('a[href^="#"]');
+
+        links.forEach(link => {
+            link.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href && href.length > 1) {
+                    e.preventDefault();
+                    const targetElement = document.querySelector(href);
+
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });;
+                    }
+                }
+            });
+        });
+    });
+</script>
 </body>
 </html>
