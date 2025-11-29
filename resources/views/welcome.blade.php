@@ -4,8 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Clover Bank - Secure and Simple Digital Banking</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        @keyframes slideInLeft {
+            from { transform: translateX(-100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-slide-in-left { animation: slideInLeft 0.8s ease-out; }
+        .animate-slide-in-right { animation: slideInRight 0.8s ease-out; }
 
+        /* Mobile menu styles */
+        .mobile-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+
+        .mobile-menu.open {
+            max-height: 500px;
+        }
+
+        /* Animation for scroll-triggered elements */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
 </head>
 <body class="bg-neutral-50">
 <nav id="clover-nav" class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-emerald-100">
@@ -13,9 +52,7 @@
         <div class="flex items-center justify-between h-20">
             <div class="flex items-center space-x-2">
                 <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <img src="/cloverbank.png" alt="logo">
                 </div>
                 <span class="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent">Clover Bank</span>
             </div>
@@ -29,11 +66,29 @@
                 </button>
             </div>
 
-            <button class="md:hidden">
-                <svg class="w-6 h-6 text-neutral-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button id="mobile-menu-button" class="md:hidden">
+                <svg id="menu-icon" class="w-6 h-6 text-neutral-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
+                <svg id="close-icon" class="w-6 h-6 text-neutral-800 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
             </button>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="mobile-menu md:hidden bg-white border-t border-emerald-100">
+            <div class="py-4 space-y-4">
+                <a href="#clover-features" class="block px-4 py-2 text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Features</a>
+                <a href="#clover-services" class="block px-4 py-2 text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Transfers & History</a>
+                <a href="#clover-security" class="block px-4 py-2 text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Security</a>
+                <a href="#clover-cta" class="block px-4 py-2 text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Get Started</a>
+                <div class="px-4 pt-2">
+                    <button class="w-full px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-semibold hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg shadow-emerald-500/30">
+                        Download App
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </nav>
@@ -356,9 +411,7 @@
             <div>
                 <div class="flex items-center space-x-2 mb-4">
                     <div class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <img src="/cloverbank.png" alt="logo">
                     </div>
                     <span class="text-xl font-bold">Clover Bank</span>
                 </div>
@@ -402,8 +455,38 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const links = document.querySelectorAll('a[href^="#"]');
+        // Mobile menu functionality
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuIcon = document.getElementById('menu-icon');
+        const closeIcon = document.getElementById('close-icon');
 
+        mobileMenuButton.addEventListener('click', () => {
+            const isOpen = mobileMenu.classList.contains('open');
+
+            if (isOpen) {
+                mobileMenu.classList.remove('open');
+                menuIcon.classList.remove('hidden');
+                closeIcon.classList.add('hidden');
+            } else {
+                mobileMenu.classList.add('open');
+                menuIcon.classList.add('hidden');
+                closeIcon.classList.remove('hidden');
+            }
+        });
+
+        // Close mobile menu when clicking on a link
+        const mobileMenuLinks = mobileMenu.querySelectorAll('a');
+        mobileMenuLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.remove('open');
+                menuIcon.classList.remove('hidden');
+                closeIcon.classList.add('hidden');
+            });
+        });
+
+        // Smooth scrolling for anchor links
+        const links = document.querySelectorAll('a[href^="#"]');
         links.forEach(link => {
             link.addEventListener('click', function (e) {
                 const href = this.getAttribute('href');
@@ -415,11 +498,28 @@
                         targetElement.scrollIntoView({
                             behavior: 'smooth',
                             block: 'start'
-                        });;
+                        });
                     }
                 }
             });
         });
+
+        // Scroll animation for elements
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        const scrollElements = document.querySelectorAll('.animate-on-scroll');
+        scrollElements.forEach(el => observer.observe(el));
     });
 </script>
 </body>
