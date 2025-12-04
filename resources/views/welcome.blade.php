@@ -61,7 +61,7 @@
                 <a href="#clover-services" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Transfers & History</a>
                 <a href="#clover-security" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Security</a>
                 <a href="#clover-cta" class="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">Get Started</a>
-                <a href="https://wf-artifacts.eascdn.net/builds/internal-st/6a40813c-8b5f-4403-86a6-61e0db0716f7/f1ba986a-3881-47be-aaac-526347e02a86/019acedc-865d-71ae-b92b-997e58149a7e/application-f1ba986a-3881-47be-aaac-526347e02a86.apk?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=75d871a1a44e598975dd84fa2341c9b0%2F20251129%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251129T091046Z&X-Amz-Expires=900&X-Amz-Signature=baaed2f523f8c38f885fc086d3817a2973708152add2adcb97a091b66b05085e&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject" class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-semibold hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg shadow-emerald-500/30">
+                <a href="https://expo.dev/artifacts/eas/vRhrkcgVFbE9t4n94EfP9J.apk" class="border rounded-full px-4 py-2  hover:scale-105 bg-gradient-to-l from-emerald-600 to-emerald-400 text-white">
                     Download App
                 </a>
             </div>
