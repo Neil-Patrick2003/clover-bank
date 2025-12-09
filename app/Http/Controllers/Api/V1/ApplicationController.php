@@ -43,7 +43,7 @@ class ApplicationController extends Controller
     abort_if($application->status !== 'draft', 422, 'Application not in draft');
 
     $data = $req->validate([
-        'requested_type' => ['required','in:savings,current,time_deposit'],
+            'requested_type' => ['required','in:savings,current'],
         'currency'       => ['required','string','size:3'],
         'initial_deposit'=> ['nullable','numeric','min:0'],
     ]);

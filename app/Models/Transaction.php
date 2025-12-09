@@ -12,8 +12,7 @@ class Transaction extends Model
 
     protected $fillable = [
         'account_id','type','amount','currency',
-        // you can keep 'reference_no' in fillable or omit it;
-        // the creating hook below will populate it if empty:
+
         'reference_no','status','remarks',
     ];
 

@@ -71,18 +71,15 @@ class AccountResource extends Resource
                         ->label('Account Type')
                         ->options([
                             'savings'  => 'Savings',
-                            'checking' => 'Checking',
-                            'time'     => 'Time Deposit',
+                            'current' => 'Current',
                         ])
                         ->icons([
                             'savings'  => 'heroicon-m-banknotes',
-                            'checking' => 'heroicon-m-building-library',
-                            'time'     => 'heroicon-m-clock',
+                            'current' => 'heroicon-m-building-library',
                         ])
                         ->colors([
                             'savings'  => 'success',
-                            'checking' => 'info',
-                            'time'     => 'warning',
+                            'current' => 'info',
                         ])
                         ->inline()
                         ->default('savings')

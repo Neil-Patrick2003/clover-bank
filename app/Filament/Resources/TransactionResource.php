@@ -9,6 +9,7 @@ use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
+// use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
 
@@ -23,20 +24,36 @@ class TransactionResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Date / Time')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('account.account_number')
-                    ->searchable(),
+                    ->label('Account #')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('type')
-                    ->badge(),
+                    ->badge()
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('amount')
-                    ->money('php'),
+                    ->money('php')
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('reference_no')
-                    ->copyable(),
+                    ->label('Reference #')
+                    ->copyable()
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\BadgeColumn::make('status')
                     ->colors([
@@ -44,29 +61,47 @@ class TransactionResource extends Resource
                         'warning' => 'pending',
                         'danger'  => 'failed',
                         'gray'    => 'reversed',
-                    ]),
+                    ])
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('remarks')
-                    ->limit(40),
+                    ->limit(40)
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false),
             ])
+
             ->defaultSort('created_at', 'desc')
 
-            // 🔽 HEADER ACTION: Download PDF with filters
             ->headerActions([
                 Action::make('download_pdf')
-                    ->label('Download PDF')
+                    ->label('Generate Report')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->form([
+                        Forms\Components\Select::make('report_type')
+                            ->label('Report Type')
+                            ->options([
+                                'transaction' => 'Transaction Report',
+                                'summary'     => 'Summary Report',
+                                'detailed'    => 'Detailed Report',
+                            ])
+                            ->default('transaction')
+                            ->required()
+                            ->live(),
+
                         Forms\Components\Select::make('period')
                             ->label('Period')
                             ->options([
-                                'month'  => 'Monthly',
-                                'year'   => 'Yearly',
-                                'custom' => 'Custom range',
+                                'month'   => 'Monthly',
+                                'year'    => 'Yearly',
+                                'custom'  => 'Custom range',
+                                'current' => 'Current View',
                             ])
                             ->default('month')
                             ->required()
-                            ->live(), // ✅ important so other fields react when this changes
+                            ->live(),
 
                         Forms\Components\Select::make('month')
                             ->label('Month')
@@ -124,38 +159,22 @@ class TransactionResource extends Resource
                             ])
                             ->native(false)
                             ->placeholder('All'),
+
+                        Forms\Components\Toggle::make('include_columns')
+                            ->label('Include All Table Columns')
+                            ->default(true),
+
+                        Forms\Components\Toggle::make('include_filters')
+                            ->label('Include Current Filters')
+                            ->default(true),
                     ])
                     ->action(function (array $data) {
-                        // Convert date objects (Carbon) or strings to Y-m-d
-                        $fromRaw = $data['from'] ?? null;
-                        $toRaw   = $data['to'] ?? null;
-
-                        $from = null;
-                        if ($fromRaw) {
-                            $from = is_string($fromRaw)
-                                ? $fromRaw
-                                : $fromRaw->format('Y-m-d');
-                        }
-
-                        $to = null;
-                        if ($toRaw) {
-                            $to = is_string($toRaw)
-                                ? $toRaw
-                                : $toRaw->format('Y-m-d');
-                        }
-
-                        $params = array_filter([
-                            'period' => $data['period'] ?? null,
-                            'month'  => $data['month'] ?? null,
-                            'year'   => $data['year'] ?? null,
-                            'from'   => $from,
-                            'to'     => $to,
-                            'status' => $data['status'] ?? null,
-                            'type'   => $data['type'] ?? null,
-                        ], fn ($value) => ! is_null($value) && $value !== '');
-
-                        return redirect()->route('transactions.report.pdf', $params);
-                    }),
+                        // Always download directly
+                        return static::generateAndDownloadPDF($data);
+                    })
+                    ->modalHeading('Generate PDF Report')
+                    ->modalDescription('Configure your report and download the PDF.')
+                    ->modalSubmitActionLabel('Download PDF'),
             ])
 
             ->actions([
@@ -219,6 +238,52 @@ class TransactionResource extends Resource
             ->bulkActions([]);
     }
 
+    public static function generateAndDownloadPDF(array $data)
+    {
+        // Convert date objects (Carbon) or strings to Y-m-d
+        $fromRaw = $data['from'] ?? null;
+        $toRaw   = $data['to'] ?? null;
+
+        $from = null;
+        if ($fromRaw) {
+            $from = is_string($fromRaw)
+                ? $fromRaw
+                : $fromRaw->format('Y-m-d');
+        }
+
+        $to = null;
+        if ($toRaw) {
+            $to = is_string($toRaw)
+                ? $toRaw
+                : $toRaw->format('Y-m-d');
+        }
+
+        // If 'current' period is selected, use simplified params
+        if (($data['period'] ?? null) === 'current') {
+            $params = [
+                'period'          => 'current',
+                'report_type'     => $data['report_type'],
+                'include_columns' => $data['include_columns'],
+                'include_filters' => $data['include_filters'],
+            ];
+        } else {
+            $params = array_filter([
+                'report_type'     => $data['report_type'],
+                'period'          => $data['period'] ?? null,
+                'month'           => $data['month'] ?? null,
+                'year'            => $data['year'] ?? null,
+                'from'            => $from,
+                'to'              => $to,
+                'status'          => $data['status'] ?? null,
+                'type'            => $data['type'] ?? null,
+                'include_columns' => $data['include_columns'],
+                'include_filters' => $data['include_filters'],
+            ], fn ($value) => ! is_null($value) && $value !== '');
+        }
+
+        return redirect()->route('transactions.report.pdf', $params);
+    }
+
     public static function getPages(): array
     {
         return [
@@ -226,3 +291,4 @@ class TransactionResource extends Resource
         ];
     }
 }
+
