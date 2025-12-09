@@ -23,13 +23,16 @@ class CreateAccount extends CreateRecord
     {
         // Ensure account_number is set even if the form didn't pass it
         $data['account_number'] = $data['account_number'] ?? AccountNumberGenerator::make();
-        $data['balance'] = 0;
-        $data['status']  = $data['status'] ?? 'open';
-        $data['currency'] = $data['currency'] ?? 'PHP';
+        $data['balance']        = 0;
+        $data['status']         = $data['status'] ?? 'open';
+        $data['currency']       = $data['currency'] ?? 'PHP';
+
+        // default account type if not provided
+        $data['account_type']   = $data['account_type'] ?? 'savings';
 
         // initial_deposit is a form-only field (dehydrated(false) in the form)
         $initial = (float) ($this->form->getState()['initial_deposit'] ?? 0);
-        if (!is_finite($initial) || $initial < 0) {
+        if (! is_finite($initial) || $initial < 0) {
             $initial = 0;
         }
 
@@ -37,10 +40,11 @@ class CreateAccount extends CreateRecord
             return DB::transaction(function () use ($data, $initial) {
                 /** @var Account $account */
                 $account = Account::create([
-                    'user_id'        => $data['user_id'],
+                    'user_id'        => $data['user_id'],          // or auth()->id()
                     'account_number' => $data['account_number'],
+                    'account_type'   => $data['account_type'],     // ✅ real column
                     'currency'       => $data['currency'],
-                    'balance'        => 0,
+                    'balance'        => 0,                         // will be updated below
                     'status'         => $data['status'],
                 ]);
 

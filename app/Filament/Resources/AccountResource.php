@@ -71,15 +71,15 @@ class AccountResource extends Resource
                         ->label('Account Type')
                         ->options([
                             'savings'  => 'Savings',
-                            'current' => 'Current',
+                            'checking' => 'Checking',
                         ])
                         ->icons([
                             'savings'  => 'heroicon-m-banknotes',
-                            'current' => 'heroicon-m-building-library',
+                            'checking' => 'heroicon-m-building-library',
                         ])
                         ->colors([
                             'savings'  => 'success',
-                            'current' => 'info',
+                            'checking' => 'info',
                         ])
                         ->inline()
                         ->default('savings')
@@ -127,17 +127,21 @@ class AccountResource extends Resource
                 ->compact(),
 
             /* ---------------- Funding ---------------- */
+            /* ---------------- Funding ---------------- */
             Section::make('Funding')
                 ->description('Starting amount; will be posted as a deposit.')
                 ->schema([
                     TextInput::make('initial_deposit')
                         ->label('Initial Deposit')
                         ->placeholder('0.00')
-                        ->numeric()->minValue(0)->step('0.01')
+                        ->numeric()
+                        ->minValue(0)
+                        ->step('0.01')
                         ->default(0)
-                        ->dehydrated(false)   // not stored in accounts table
-                        ->visibleOn('create')
-                        ->required(),         // required on create (UI)
+                        ->required()
+                        ->visibleOn('create'),
+                    // NOTE: we allow it to dehydrate so it's in $data,
+                    // but we will strip it out before Account::create()
 
                     TextInput::make('balance')
                         ->label('Balance')
@@ -166,17 +170,14 @@ class AccountResource extends Resource
                     ->colors([
                         'success' => 'savings',
                         'info'    => 'checking',
-                        'warning' => 'time',
                     ])
                     ->icons([
                         'heroicon-m-banknotes'        => 'savings',
                         'heroicon-m-building-library' => 'checking',
-                        'heroicon-m-clock'            => 'time',
                     ])
                     ->formatStateUsing(fn ($state) => [
                         'savings' => 'Savings',
                         'checking'=> 'Checking',
-                        'time'    => 'Time Deposit',
                     ][$state] ?? ucfirst((string) $state))
                     ->sortable()
                     ->searchable(),
@@ -224,7 +225,6 @@ class AccountResource extends Resource
                     ->options([
                         'savings'  => 'Savings',
                         'checking' => 'Checking',
-                        'time'     => 'Time Deposit',
                     ])
                     ->placeholder('All types'),
 

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Account extends Model
 {
     protected $table = 'accounts';
-    protected $fillable = ['user_id','account_number','currency','balance', 'account_type','status'];
+    protected $guarded = [];
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function transactions(): HasMany { return $this->hasMany(Transaction::class); }
